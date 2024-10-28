@@ -1,0 +1,10 @@
+scrapy
+aiohttp
+beautifulsoup4
+pandas
+nltk
+openai
+transformers
+bertopic
+asyncio
+loguru  # Enhanced logging library
