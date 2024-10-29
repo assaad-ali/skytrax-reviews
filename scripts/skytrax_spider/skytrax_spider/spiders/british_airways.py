@@ -1,5 +1,3 @@
-# skytrax_spider/spiders/british_airways.py
-
 import scrapy
 from loguru import logger
 import re
@@ -17,16 +15,21 @@ logger.add(
 
 class BritishAirwaysSpider(scrapy.Spider):
     name = "british_airways"
+    
+    # Define base URL and page_size for smooth pagination
+    base_url = "https://www.airlinequality.com/airline-reviews/british-airways"
+    page_size = 100
+    max_pages = 20  # Adjust this if needed
+
     start_urls = [
-        'https://www.airlinequality.com/airline-reviews/british-airways/page/1/'
+        f"{base_url}/page/1/?sortby=post_date%3ADesc&pagesize={page_size}"
     ]
 
     def __init__(self, *args, **kwargs):
         try:
             super().__init__(*args, **kwargs)
             self.total_reviews = 0
-            self.max_pages = 10  # Limit to first 10 pages
-            logger.info("BritishAirwaysSpider initialized.")
+            logger.info("BritishAirwaysSpider initialized with pagination setup.")
         except Exception as e:
             logger.error(f"Error during initialization: {e}")
 
@@ -52,7 +55,7 @@ class BritishAirwaysSpider(scrapy.Spider):
                         'recommended': review.css('td.review-rating-header.recommended + td.review-value::text').get(default='').strip()
                     }
 
-                    # Check for missing fields and log warnings
+                    # Log missing fields if any
                     missing_fields = [key for key, value in review_data.items() if not value]
                     if missing_fields:
                         logger.warning(f"Missing fields in review {idx} on {response.url}: {missing_fields}")
@@ -63,6 +66,7 @@ class BritishAirwaysSpider(scrapy.Spider):
                     yield review_data
                 except Exception as e:
                     logger.error(f"Error parsing review {idx} on {response.url}: {e}")
+            
             # Alternative solution for sequential pagination
             # Follow pagination using the XPath selector for 'Next Page'
             # next_page = response.xpath('//article[contains(@class, "comp_reviews-pagination")]//a[text()=">>"]/@href').get()
@@ -71,18 +75,15 @@ class BritishAirwaysSpider(scrapy.Spider):
             #     logger.info(f"Following to next page: {next_page_url}")
             #     yield scrapy.Request(next_page_url, callback=self.parse)
             # Extract current page number from the URL using regex
-            current_page_match = re.search(r'/page/(\d+)/', response.url)
-            if current_page_match:
-                current_page = int(current_page_match.group(1))
-            else:
-                current_page = 1  # Default to 1 if not found
 
+            # Determine the current page from the URL and move to the next if within limits
+            current_page_match = re.search(r'/page/(\d+)/', response.url)
+            current_page = int(current_page_match.group(1)) if current_page_match else 1
             logger.info(f"Current page number: {current_page}")
 
-            # Determine if the next page should be scraped
             if current_page < self.max_pages:
                 next_page = current_page + 1
-                next_page_url = f'https://www.airlinequality.com/airline-reviews/british-airways/page/{next_page}/'
+                next_page_url = f"{self.base_url}/page/{next_page}/?sortby=post_date%3ADesc&pagesize={self.page_size}"
                 logger.info(f"Following to next page: {next_page_url} (Page {next_page})")
                 yield scrapy.Request(next_page_url, callback=self.parse)
             else:
