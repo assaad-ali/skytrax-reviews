@@ -1,10 +1,8 @@
 scrapy
-aiohttp
-beautifulsoup4
 pandas
+textblob
 nltk
-openai
-transformers
-bertopic
-asyncio
-loguru  # Enhanced logging library
+gensim
+loguru
+matplotlib
+seaborn
