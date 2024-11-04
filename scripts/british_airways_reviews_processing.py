@@ -41,3 +41,33 @@ def correct_spelling(text):
         corrected_word = spell.correction(word)
         corrected_text.append(corrected_word if corrected_word else word)
     return ' '.join(corrected_text)
+
+def process_text(text):
+    try:
+        # Spell correction
+        text = correct_spelling(text)
+
+        # NLP processing
+        doc = nlp(text.lower())
+
+        # Lemmatization, stopword removal, and handling negations
+        tokens = []
+        for token in doc:
+            # Check if the token is not a stopword and not a punctuation
+            if not token.is_stop and not token.is_punct and token.lemma_ not in STOP_WORDS:
+                if token.dep_ == 'neg':
+                    tokens.append('not_' + token.head.lemma_)
+                else:
+                    tokens.append(token.lemma_)
+
+        processed_text = ' '.join(tokens)
+
+        # Named Entity Recognition
+        entities = [(ent.text, ent.label_) for ent in doc.ents]
+
+        return processed_text, tokens, entities
+    except Exception as e:
+        logger.error(f"Error processing text: {e}")
+        return "", [], []
+
+
